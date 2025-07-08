@@ -1,0 +1,54 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+
+# Virtual environment
+venv/
+env/
+ENV/
+.env
+.virtualenv/
+
+# Installation directories
+build/
+dist/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# C extensions
+build/
+
+# Distribution / packaging
+pip-wheel-metadata/
+wheelhouse/
+
+# Documentation build output
+docs/_build/
+
+# PyInstaller builds
+build/
+dist/
+
+# Testing coverage and reports
+.coverage
+coverage.xml
+htmlcov/
+.pytest_cache/
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Logs and databases
+*.log
+*.sqlite3
