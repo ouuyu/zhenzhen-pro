@@ -1,102 +1,76 @@
 import time
-import secrets
-from uuid import uuid4
-from fastapi import HTTPException
 from typing import Optional, List
-from core.config import client, BASE_URL, API_KEY
-from models.chat import ChatMessageRequest, MODEL_MAPPING
+from models.chat import ChatMessageRequest
 from core.context import conversations
+from .response_builder import build_response
+from .model_handler import ModelHandler
+from .message_processor import MessageProcessor
+from .api_client import GeminiAPIClient
+from .netease import NeteaseMusicPlayer
 
+# 禁止访问时间表
+banned_time_schedule = [
+    ("17:50", "21:30"),
+    ("12:50", "13:30")
+]
 
-def build_response(
-    model, user_id, query, answer, conversation_id=None, warning=False
-):
-    answer += "\n\n `model: " + model + "` | `conversationId: " + (conversation_id or "none") + "`"
-    return {
-        "type": "json",
-        "messageId": str(uuid4()),
-        "conversationId": conversation_id or secrets.token_hex(12),
-        "appId": "6837b25503c5c1219b17565e",
-        "model": model,
-        "modelProvider": "zhenhai",
-        "userId": user_id,
-        "answer": answer,
-        "createdDate": int(time.time()),
-        "query": query,
-        "warning": warning
-    }
-
-async def get_gemini_response(user_id: str, conversation_id: Optional[str], request_data: ChatMessageRequest, context: List[dict] = None):
+async def get_gemini_response(
+    user_id: str,
+    conversation_id: Optional[str],
+    request_data: ChatMessageRequest,
+    context: Optional[List[dict]] = None
+) -> dict:
     """
     调用Gemini API并返回处理后的响应
+
+    Args:
+        user_id: 用户ID
+        conversation_id: 对话ID
+        request_data: 聊天请求数据
+        context: 上下文消息列表
+
+    Returns:
+        dict: 格式化的响应数据
     """
     query = request_data.query
-    model = request_data.model
-    used_model_name = None
+    model = request_data.model or "default"
 
+    # 处理模型列表查询
     if query.strip().lower() == "list":
-        table = "| 简称 | 模型 | 深度思考 |\n|------|----------|--------------|\n"
-        for k, v in MODEL_MAPPING.items():
-            model_name = v["model"] if isinstance(v, dict) else v
-            deep_thinking = v.get("deep_thinking", False) if isinstance(v, dict) else False
-            table += f"| {k} | {model_name} | {'是' if deep_thinking else '否'} |\n"
-        answer = f"当前支持的模型映射表如下：\n\n{table}"
+        answer = ModelHandler.generate_model_list_table()
         return build_response(model, user_id, query, answer, conversation_id)
 
-    for prefix, full_model in MODEL_MAPPING.items():
-        if query.lower().startswith(f"{prefix}"):
-            remain = query[len(prefix):]
-            if remain and remain[0] in [":", " "]:
-                remain = remain[1:].strip()
-            else:
-                remain = remain.strip()
-            if remain.lower().startswith("thinking"):
-                remain = remain[len("thinking"):].strip()
-            query = remain
-            model = full_model["model"] if isinstance(full_model, dict) else full_model
-            break
+    # 处理当前时间与禁止时间
+    if query.strip().lower()[0] == "test":
+        current_time = time.strftime("%H:%M")
+        for start, end in banned_time_schedule:
+            if start <= current_time <= end:
+                return build_response(model, user_id, query, "当前禁止访问", conversation_id)
+        if query.strip().lower()[1] == "wyy":
+            player = NeteaseMusicPlayer()
+            search_term = query.strip().lower()[2:].join(' ')
+            html_player = player.get_music_player_html(search_term)
+            return build_response(model, user_id, query, html_player, conversation_id)
 
-    messages = context.copy() if context else []
-    if not messages or messages[0].get("role") != "system":
-        messages = [
-            {
-                "role": "system", 
-                "content": "你是镇镇, 悉心回答用户的问题, 可以使用 latex (单独成行), markdown."
-            },
-            {"role": "user", "content": query}
-        ]
-    if not messages or messages[-1].get("content") != query:
-        messages.append({"role": "user", "content": query})
-    payload = {
-        "model": model,
-        "messages": messages
-    }
+    # 解析模型前缀
+    processed_query, parsed_model = ModelHandler.parse_model_prefix(query)
+    if parsed_model:
+        model = parsed_model
+        query = processed_query
 
-    if request_data.thinking_budget is not None:
-        payload['thinking_budget'] = request_data.thinking_budget
+    # 构建消息
+    messages = MessageProcessor.build_messages(query, context)
 
-    headers = {
-        "Authorization": f"Bearer {API_KEY}",
-        "Content-Type": "application/json"
-    }
+    # 构建API载荷
+    payload = MessageProcessor.build_api_payload(model, messages, request_data.thinking_budget)
 
-    try:
-        response = await client.post(f"{BASE_URL}/chat/completions", json=payload, headers=headers)
-        response.raise_for_status()
+    # 调用API
+    api_client = GeminiAPIClient()
+    success, content, error_detail = await api_client.call_chat_completion(payload)
 
-        response_data = response.json()
-        answer = response_data.get("choices", [{}])[0].get("message", {}).get("content", "failed to get datas")
-
-        if "iframe" in answer.lower():
-            answer = "no iframe"
-
+    if success:
+        # 过滤响应内容
+        answer = MessageProcessor.filter_response_content(content)
         return build_response(model, user_id, query, answer, conversation_id)
-    except Exception as e:
-        error_detail = ""
-        if hasattr(e, 'response') and e.response is not None:
-            try:
-                error_detail = f"\n\n后端返回: {e.response.text}"
-            except Exception:
-                pass
-        answer = f"[错误] {str(e)}{error_detail}"
-        return build_response(model, user_id, query, answer, conversation_id)
+    else:
+        return build_response(model, user_id, query, content, conversation_id)
