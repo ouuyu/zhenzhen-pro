@@ -21,9 +21,6 @@ app = FastAPI(lifespan=lifespan)
 @app.middleware("http")
 async def android_only_middleware(request: Request, call_next):
     user_agent = request.headers.get("user-agent", "").lower()
-    
-    if request.url.path in ["/", "/docs", "/openapi.json"]:
-        return await call_next(request)
         
     if "android" not in user_agent:
         return Response(status_code=403, content="Access Forbidden", headers={"Connection": "close"})
