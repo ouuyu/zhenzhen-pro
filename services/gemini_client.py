@@ -11,7 +11,9 @@ from .netease import NeteaseMusicPlayer
 # 禁止访问时间表
 banned_time_schedule = [
     ("17:50", "21:30"),
-    ("12:50", "13:30")
+    ("12:50", "13:30"),
+    ("07:00", "11:50"),
+    ("14:40", "16:10")
 ]
 
 async def get_gemini_response(
