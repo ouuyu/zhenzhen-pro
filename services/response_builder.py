@@ -10,7 +10,8 @@ def build_response(
     query: str, 
     answer: str, 
     conversation_id: Optional[str] = None, 
-    warning: bool = False
+    warning: bool = False,
+    log_model: bool = True
 ) -> dict:
     """
     构建标准化的响应格式
@@ -22,11 +23,13 @@ def build_response(
         answer: 回答内容
         conversation_id: 对话ID, 如果为None则生成新的
         warning: 是否包含警告信息
+        log_model: 是否在回答中记录模型信息
         
     Returns:
         dict: 格式化的响应数据
     """
-    answer += f"\n\n `model: {model}` | `conversationId: {conversation_id or 'none'}`"
+    if log_model:
+        answer += f"\n\n `model: {model}` | `conversationId: {conversation_id or 'none'}`"
     
     return {
         "type": "json",

@@ -1,0 +1,16 @@
+# FastAPI and web framework dependencies
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+
+# HTTP client for API calls
+httpx>=0.25.0
+
+# Data validation and serialization
+pydantic>=2.4.0
+
+# Python standard library enhancements (if needed)
+# Most imports are from standard library, no additional deps needed
+
+# Development and testing dependencies (optional, for CI/CD)
+# pytest>=7.4.0
+# pytest-asyncio>=0.21.0

@@ -12,7 +12,7 @@ class NeteaseMusicPlayer:
         根据搜索关键词获取网易云音乐播放器HTML。
         """
         try:
-            search_params = {"keywords": search_keywords}
+            search_params = {"keywords": search_keywords, "limit": 1}
             search_response = self.client.get(self.search_api_url, params=search_params)
             search_response.raise_for_status()
             search_data = search_response.json()
@@ -42,27 +42,21 @@ class NeteaseMusicPlayer:
                 return "未能获取歌曲播放链接或信息。"
 
             music_url = music_data["url"]
-            album_name = music_data["al_name"]
             artist_name = music_data["ar_name"]
+            song_name = music_data["name"]
 
-            html_output = f"""
-            <p>专辑: {album_name}</p>
-            <p>歌手: {artist_name}</p>
-            <audio controls>
-                <source src="{music_url}" type="audio/mpeg">
-                您的浏览器不支持 audio 元素。
-            </audio>
-            """
+            html_output = f'<p>歌曲: {song_name}</p>\n<p>歌手: {artist_name}</p>\n'
+            html_output += f'<audio controls src="{music_url}">'
             return html_output
 
         except httpx.HTTPStatusError as e:
-            return f"API请求失败，状态码: {e.response.status_code}. 详细信息: {e.response.text}"
+            return f"API请求失败, 状态码: {e.response.status_code}. 详细信息: {e.response.text}"
         except httpx.RequestError as e:
             return f"请求发送失败: {e}"
         except json.JSONDecodeError:
-            return "解析响应数据失败，可能不是有效的 JSON。"
+            return "解析响应数据失败, 可能不是有效的 JSON。"
         except KeyError:
-            return "API响应数据结构不符合预期，缺少关键字段。"
+            return "API响应数据结构不符合预期, 缺少关键字段。"
         except Exception as e:
             return f"发生未知错误: {e}"
 

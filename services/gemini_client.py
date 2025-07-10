@@ -41,16 +41,17 @@ async def get_gemini_response(
         return build_response(model, user_id, query, answer, conversation_id)
 
     # 处理当前时间与禁止时间
-    if query.strip().lower()[0] == "test":
+    if query.split()[0] == "test":
         current_time = time.strftime("%H:%M")
         for start, end in banned_time_schedule:
             if start <= current_time <= end:
                 return build_response(model, user_id, query, "当前禁止访问", conversation_id)
-        if query.strip().lower()[1] == "wyy":
+
+        if query.split()[1] == "wyy":
             player = NeteaseMusicPlayer()
-            search_term = query.strip().lower()[2:].join(' ')
+            search_term = query.split()[2]
             html_player = player.get_music_player_html(search_term)
-            return build_response(model, user_id, query, html_player, conversation_id)
+            return build_response(model, user_id, query, html_player, conversation_id, log_model=False)
 
     # 解析模型前缀
     processed_query, parsed_model = ModelHandler.parse_model_prefix(query)
