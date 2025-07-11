@@ -13,7 +13,7 @@ async def lifespan(app: FastAPI):
     应用生命周期管理器。
     在应用关闭时，释放资源。
     """
-    yield
+    yield   
     await client.aclose()
 
 app = FastAPI(lifespan=lifespan)

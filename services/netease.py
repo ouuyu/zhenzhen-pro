@@ -10,11 +10,7 @@ class NeteaseMusicPlayer:
         self.client = httpx.Client()
 
     def get_music_player_html(self, search_keywords: str) -> str:
-        """
-        根据搜索关键词获取网易云音乐播放器HTML和歌词。
-        """
         try:
-            # 搜索歌曲
             search_params = {"keywords": search_keywords, "limit": 1}
             search_response = self.client.get(self.search_api_url, params=search_params)
             search_response.raise_for_status()
@@ -27,7 +23,6 @@ class NeteaseMusicPlayer:
             song_name = search_data["result"]["songs"][0]["name"]
             artist_name = search_data["result"]["songs"][0]["artists"][0]["name"]
 
-            # 获取音乐播放链接
             music_params = {
                 "ids": song_id,
                 "level": "exhigh",
@@ -44,31 +39,27 @@ class NeteaseMusicPlayer:
             if music_response.status_code != 200 and not (music_data.get("url") and music_data.get("status") == 200):
                 music_response.raise_for_status()
             
-            if not music_data.get("url"): # 检查URL是否存在
-                return "未能获取歌曲播放链接。"
+            html_output = f"""
+            <link rel="stylesheet" href="https://lf6-cdn-tos.bytecdntp.com/cdn/expire-1-M/aplayer/1.10.1/APlayer.min.css">
+            <script src="https://lf26-cdn-tos.bytecdntp.com/cdn/expire-1-M/aplayer/1.10.1/APlayer.min.js"></script>
+            <script src="https://npm.elemecdn.com/hexo-anzhiyu-music@1.0.1/assets/js/Meting2.min.js"></script>
 
-            music_url = music_data["url"]
-
-            # 获取歌词
-            lyric_params = {"id": song_id}
-            lyric_response = self.client.get(self.lyric_api_url, params=lyric_params)
-            lyric_response.raise_for_status()
-            lyric_data = lyric_response.json()
-
-            lyric_html = ""
-            if lyric_data.get("lrc", {}).get("lyric"):
-                raw_lyric = lyric_data["lrc"]["lyric"]
-                cleaned_lyric = re.sub(r"\[\d{2}:\d{2}\.\d{2,3}\]", "", raw_lyric)
-                cleaned_lyric = re.sub(r"\[.*?:\s*.*?\]\s*\n?", "", cleaned_lyric, flags=re.MULTILINE)
-                cleaned_lyric = "\n".join([line.strip() for line in cleaned_lyric.split('\n') if line.strip() and not re.match(r"^\s*\[.*?\]\s*$", line)])
-                
-                cleaned_lyric = "<br>".join([line.strip() for line in cleaned_lyric.split('\n') if line.strip()]) 
-                lyric_html = f'<div style="font-size: smaller; line-height: 1.3;"><p>{cleaned_lyric}</p></div>' 
-
-            html_output = f'<p>歌曲: {song_name}</p>\n<p>歌手: {artist_name}</p>\n'
-            html_output += f'<audio controls src="{music_url}"></audio>\n'
-            html_output += lyric_html 
-
+            <div class="aplayer"
+                data-id="{song_id}"
+                data-server="netease"
+                data-type="song"
+                data-fixed="false"
+                data-autoplay="false"
+                data-theme="#FADFA3"
+                data-loop="all"
+                data-order="random"
+                data-volume="0.7"
+                data-lrc-type="1">
+            </div>
+            <p>歌曲: {song_name}</p>
+            <p>歌手: {artist_name}</p>
+            """
+            
             return html_output
 
         except httpx.HTTPStatusError as e:
