@@ -1,3 +1,4 @@
+import hashlib
 import time
 from typing import Optional, List
 from models.chat import ChatMessageRequest
@@ -15,6 +16,9 @@ banned_time_schedule = [
     ("07:00", "11:50"),
     ("14:40", "16:10")
 ]
+
+# 调试密码
+debug_password_md5 = "9513090B1409A88224B498A24992454F"
 
 async def get_gemini_response(
     user_id: str,
@@ -45,9 +49,10 @@ async def get_gemini_response(
     # 处理当前时间与禁止时间
     if query.split()[0] == "test":
         current_time = time.strftime("%H:%M")
+        debug = hashlib.md5(query.split()[1].encode()).hexdigest() == debug_password_md5
         for start, end in banned_time_schedule:
-            if start <= current_time <= end:
-                return build_response(model, user_id, query, "当前禁止访问", conversation_id)
+            if start <= current_time <= end and not debug:
+                return build_response(model, user_id, query, "禁止访问 " + current_time, conversation_id)
 
         if query.split()[1] == "wyy":
             player = NeteaseMusicPlayer()
