@@ -14,7 +14,7 @@ banned_time_schedule = [
     ("17:50", "21:30"),
     ("12:50", "13:30"),
     ("07:00", "11:50"),
-    ("14:40", "16:10")
+    ("13:40", "16:10")
 ]
 
 debug_password_md5 = "07794CCCB03C3EB315AAAA292E377A7F"
@@ -42,7 +42,7 @@ async def get_gemini_response(
         if len(query_parts) > 1 and query_parts[1] == "wyy":
             if len(query_parts) > 2:
                 player = NeteaseMusicPlayer()
-                html_player = player.get_music_player_html(query_parts[2])
+                html_player = player.get_music_player_html((' ').join(query_parts[2:]))
                 return build_response(model, user_id, query, html_player, conversation_id, log_model=False)
 
         if len(query_parts) > 1 and query_parts[1] == "ithome":
