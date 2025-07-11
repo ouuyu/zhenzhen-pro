@@ -9,7 +9,6 @@ from .message_processor import MessageProcessor
 from .api_client import GeminiAPIClient
 from .netease import NeteaseMusicPlayer
 
-# 禁止访问时间表
 banned_time_schedule = [
     ("17:50", "21:30"),
     ("12:50", "13:30"),
@@ -17,7 +16,6 @@ banned_time_schedule = [
     ("14:40", "16:10")
 ]
 
-# 调试密码
 debug_password_md5 = "07794CCCB03C3EB315AAAA292E377A7F"
 
 async def get_gemini_response(
@@ -26,61 +24,36 @@ async def get_gemini_response(
     request_data: ChatMessageRequest,
     context: Optional[List[dict]] = None
 ) -> dict:
-    """
-    调用Gemini API并返回处理后的响应
-
-    Args:
-        user_id: 用户ID
-        conversation_id: 对话ID
-        request_data: 聊天请求数据
-        context: 上下文消息列表
-
-    Returns:
-        dict: 格式化的响应数据
-    """
-    query = request_data.query
+    query = request_data.query.strip()
     model = request_data.model or "default"
 
-    # 处理模型列表查询
-    if query.strip().lower() == "list":
-        answer = ModelHandler.generate_model_list_table()
-        return build_response(model, user_id, query, answer, conversation_id)
+    if query.lower() == "list":
+        return build_response(model, user_id, query, ModelHandler.generate_model_list_table(), conversation_id)
 
-    query = query.strip()
-
-    # 处理当前时间与禁止时间
-    if query.split()[0].startswith("test"):
+    query_parts = query.split()
+    if query_parts and query_parts[0].startswith("test"):
         current_time = time.strftime("%H:%M")
-        debug = hashlib.md5(query.split()[0].encode()).hexdigest() == debug_password_md5
-        for start, end in banned_time_schedule:
-            if start <= current_time <= end and not debug:
-                return build_response(model, user_id, query, "禁止访问 " + current_time, conversation_id)
+        is_debug = hashlib.md5(query_parts[0].encode()).hexdigest() == debug_password_md5.lower()
 
-        if query.split()[1] == "wyy":
-            player = NeteaseMusicPlayer()
-            search_term = query.split()[2]
-            html_player = player.get_music_player_html(search_term)
-            return build_response(model, user_id, query, html_player, conversation_id, log_model=False)
+        if any(start <= current_time <= end for start, end in banned_time_schedule) and not is_debug:
+            return build_response(model, user_id, query, "禁止访问 " + current_time, conversation_id)
 
-    # 解析模型前缀
+        if len(query_parts) > 1 and query_parts[1] == "wyy":
+            if len(query_parts) > 2:
+                player = NeteaseMusicPlayer()
+                html_player = player.get_music_player_html(query_parts[2])
+                return build_response(model, user_id, query, html_player, conversation_id, log_model=False)
+
     processed_query, parsed_model = ModelHandler.parse_model_prefix(query)
     if parsed_model:
         model = parsed_model
         query = processed_query
 
-    # 构建消息
     messages = MessageProcessor.build_messages(query, context)
-
-    # 构建API载荷
     payload = MessageProcessor.build_api_payload(model, messages, request_data.thinking_budget)
 
-    # 调用API
     api_client = GeminiAPIClient()
     success, content, error_detail = await api_client.call_chat_completion(payload)
 
-    if success:
-        # 过滤响应内容
-        answer = MessageProcessor.filter_response_content(content)
-        return build_response(model, user_id, query, answer, conversation_id)
-    else:
-        return build_response(model, user_id, query, content, conversation_id)
+    answer = MessageProcessor.filter_response_content(content) if success else content
+    return build_response(model, user_id, query, answer, conversation_id)
