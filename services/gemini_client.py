@@ -8,6 +8,7 @@ from .model_handler import ModelHandler
 from .message_processor import MessageProcessor
 from .api_client import GeminiAPIClient
 from .netease import NeteaseMusicPlayer
+from .ithome import ITHomeRSSReader
 
 banned_time_schedule = [
     ("17:50", "21:30"),
@@ -43,6 +44,11 @@ async def get_gemini_response(
                 player = NeteaseMusicPlayer()
                 html_player = player.get_music_player_html(query_parts[2])
                 return build_response(model, user_id, query, html_player, conversation_id, log_model=False)
+
+        if len(query_parts) > 1 and query_parts[1] == "ithome":
+            reader = ITHomeRSSReader()
+            news_html = reader.get_latest_news_html()
+            return build_response(model, user_id, query, news_html, conversation_id, log_model=False)
 
     processed_query, parsed_model = ModelHandler.parse_model_prefix(query)
     if parsed_model:

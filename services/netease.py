@@ -63,7 +63,7 @@ class NeteaseMusicPlayer:
                 cleaned_lyric = "\n".join([line.strip() for line in cleaned_lyric.split('\n') if line.strip() and not re.match(r"^\s*\[.*?\]\s*$", line)])
                 
                 cleaned_lyric = "<br>".join([line.strip() for line in cleaned_lyric.split('\n') if line.strip()]) 
-                lyric_html = f'<div style="font-size: smaller; line-height: 1.0;"><p>{cleaned_lyric}</p></div>' 
+                lyric_html = f'<div style="font-size: smaller; line-height: 1.15;"><p>{cleaned_lyric}</p></div>' 
 
             html_output = f'<p>歌曲: {song_name}</p>\n<p>歌手: {artist_name}</p>\n'
             html_output += f'<audio controls src="{music_url}"></audio>\n'
