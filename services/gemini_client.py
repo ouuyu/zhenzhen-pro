@@ -18,7 +18,7 @@ banned_time_schedule = [
 ]
 
 # 调试密码
-debug_password_md5 = "9513090B1409A88224B498A24992454F"
+debug_password_md5 = "07794CCCB03C3EB315AAAA292E377A7F"
 
 async def get_gemini_response(
     user_id: str,
@@ -47,9 +47,9 @@ async def get_gemini_response(
         return build_response(model, user_id, query, answer, conversation_id)
 
     # 处理当前时间与禁止时间
-    if query.split()[0] == "test":
+    if query.split()[0].startswith("test"):
         current_time = time.strftime("%H:%M")
-        debug = hashlib.md5(query.split()[1].encode()).hexdigest() == debug_password_md5
+        debug = hashlib.md5(query.split()[0].encode()).hexdigest() == debug_password_md5
         for start, end in banned_time_schedule:
             if start <= current_time <= end and not debug:
                 return build_response(model, user_id, query, "禁止访问 " + current_time, conversation_id)
