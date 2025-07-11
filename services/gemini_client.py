@@ -46,6 +46,8 @@ async def get_gemini_response(
         answer = ModelHandler.generate_model_list_table()
         return build_response(model, user_id, query, answer, conversation_id)
 
+    query = query.strip()
+
     # 处理当前时间与禁止时间
     if query.split()[0].startswith("test"):
         current_time = time.strftime("%H:%M")
