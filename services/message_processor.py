@@ -27,16 +27,18 @@ class MessageProcessor:
         Returns:
             List[Dict[str, Any]]: 构建好的消息列表
         """
-        messages = context.copy() if context else []
+        messages = []
         
-        # 确保有系统消息
-        if not messages or messages[0].get("role") != "system":
-            messages = [
-                MessageProcessor.DEFAULT_SYSTEM_MESSAGE,
-                {"role": "user", "content": query}
-            ]
+        # 1. 添加系统消息
+        messages.append(MessageProcessor.DEFAULT_SYSTEM_MESSAGE)
         
-        # 确保最后一条消息是当前查询
+        # 2. 添加历史消息（如果有）
+        if context:
+            # 跳过context中的系统消息（如果有）
+            history_messages = [msg for msg in context if msg.get("role") != "system"]
+            messages.extend(history_messages)
+        
+        # 3. 确保最后一条消息是当前查询
         if not messages or messages[-1].get("content") != query:
             messages.append({"role": "user", "content": query})
             

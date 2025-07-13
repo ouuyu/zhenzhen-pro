@@ -22,7 +22,7 @@ async def proxy_requests(request: Request, full_path: str):
         elif request.method == "PUT":
             response = await client.put(url, headers=headers, content=data)
         elif request.method == "DELETE":
-            response = await client.delete(url, headers=headers, content=data)
+            response = await client.delete(url, headers=headers)
         else:
             raise HTTPException(status_code=405, detail="Method Not Allowed")
 

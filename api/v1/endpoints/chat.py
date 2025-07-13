@@ -26,12 +26,23 @@ async def send_chat_message(
     - `conversationId`: 可选的会话ID。
     """
     conv_id = conversationId or user_id
+    
+    # 初始化会话历史
     if conv_id not in conversations:
         conversations[conv_id] = []
+    
+    # 添加用户消息到历史记录
     conversations[conv_id].append({"role": "user", "content": message.query})
-    context = conversations[conv_id][-10:]
+    
+    # 获取最近的对话历史（不包括系统消息）
+    context = [msg for msg in conversations[conv_id][-10:] if msg.get("role") != "system"]
+    
+    # 调用API获取响应
     response = await gemini_client.get_gemini_response(user_id, conv_id, message, context)
+    
+    # 添加助手回复到历史记录
     conversations[conv_id].append({"role": "assistant", "content": response.get("answer", "")})
+    
     return response
 
 @router.get("/pub/agent/users/{userId}/appId/{appId}/violation")
